@@ -1,0 +1,82 @@
+# NCAA basketball
+
+SELECT h_points_game 
+  , h_field_goals_pct
+  , h_free_throws_pct
+  , h_offensive_rebounds
+  , h_defensive_rebounds
+  , h_assists
+  , h_turnovers
+  , h_steals
+  , h_blocks
+
+FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr`
+WHERE season IN(2017)
+AND h_points_game BETWEEN 1 AND 200
+
+
+# Standard SQL
+
+CREATE MODEL `rich_dataset.bball_model2`
+OPTIONS(model_type='linear_reg',
+       input_label_cols=['h_points_game']) AS
+
+       SELECT h_points_game 
+       , h_field_goals_pct
+       , h_free_throws_pct
+       , h_offensive_rebounds
+       , h_defensive_rebounds
+       , h_assists
+       , h_turnovers
+       , h_steals
+       , h_blocks
+
+       FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr`
+       WHERE season IN(2017)
+       AND h_points_game BETWEEN 1 AND 200 
+
+# Evaluate model
+
+SELECT *
+FROM ML.EVALUATE( MODEL `rich_dataset.bball_model`,
+(
+  SELECT h_points_game 
+    , h_field_goals_pct
+    , h_free_throws_pct
+    , h_offensive_rebounds
+    , h_defensive_rebounds
+    , h_assists
+    , h_turnovers
+    , h_steals
+    , h_blocks
+
+  FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr`
+  WHERE season IN(2017)
+  AND h_points_game BETWEEN 1 AND 200 
+))
+
+
+# predict model
+SELECT *
+FROM ML.PREDICT( MODEL `rich_dataset.bball_model`,
+(
+  SELECT h_points_game 
+    , h_field_goals_pct
+    , h_free_throws_pct
+    , h_offensive_rebounds
+    , h_defensive_rebounds
+    , h_assists
+    , h_turnovers
+    , h_steals
+    , h_blocks
+
+  FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr`
+  WHERE season IN(2017)
+  AND h_points_game BETWEEN 1 AND 200 
+))
+
+# save view
+
+
+# Query results 
+SELECT * FROM `oval-tributary-382017.rich_dataset.bball_predicted_pts` LIMIT 1000

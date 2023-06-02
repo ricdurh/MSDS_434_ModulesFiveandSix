@@ -1,0 +1,150 @@
+# NCAA get teams played in two games     # I further filtered this for margins between 30
+
+WITH t1 as (
+        SELECT season
+          , h_market
+          , a_market
+          , periods
+          , case when periods > 2.5 THEN 0 ELSE (h_points_game - a_points_game) END as margin_1
+          
+        FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr`
+        WHERE 1 = 1
+        -- AND season IN(2017)
+        AND h_points_game BETWEEN 1 AND 200
+        AND h_conf_alias = a_conf_alias
+        AND tournament_type IS NULL
+),
+
+
+t2 as (
+        SELECT season
+          , h_market
+          , a_market
+          , periods
+          , case when periods > 2.5 THEN 0 ELSE (a_points_game - h_points_game) END as margin_2
+          
+        FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr`
+        WHERE 1 = 1
+        -- AND season IN(2017)
+        AND h_points_game BETWEEN 1 AND 200
+        AND h_conf_alias = a_conf_alias
+        AND tournament_type IS NULL
+), 
+
+t3 as (
+        SELECT t1.season
+          , t1.h_market
+          , t1.a_market
+          , margin_1
+          , t2.a_market
+          , t2.h_market
+          , margin_2
+
+        FROM t1 
+        JOIN t2
+        ON t1.h_market = t2.a_market
+        AND t1.a_market = t2.h_market
+        AND t1.season = t2.season
+)
+
+SELECT *
+FROM t3
+
+
+
+
+
+
+
+# get all games including neutral, but only if both teams from list above
+
+
+
+
+WITH t1 as (
+        SELECT season
+          , h_market
+          , a_market
+          , periods
+          , case when periods > 2.5 THEN 0 ELSE (h_points_game - a_points_game) END as margin_1
+          
+        FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr`
+        WHERE 1 = 1
+        -- AND season IN(2017)
+        AND h_points_game BETWEEN 1 AND 200
+        AND h_conf_alias = a_conf_alias
+        AND tournament_type IS NULL
+),
+
+
+t2 as (
+        SELECT season
+          , h_market
+          , a_market
+          , periods
+          , case when periods > 2.5 THEN 0 ELSE (a_points_game - h_points_game) END as margin_2
+          
+        FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr`
+        WHERE 1 = 1
+        -- AND season IN(2017)
+        AND h_points_game BETWEEN 1 AND 200
+        AND h_conf_alias = a_conf_alias
+        AND tournament_type IS NULL
+), 
+
+t3 as (
+        SELECT t1.season
+          , t1.h_market
+
+        FROM t1 
+        JOIN t2
+        ON t1.h_market = t2.a_market
+        AND t1.a_market = t2.h_market
+        AND t1.season = t2.season
+        
+),
+
+
+t4 as (
+        SELECT season
+        , h_market
+        , a_market
+        , periods
+        , neutral_site                         
+        , case when periods > 2.5 THEN -1 ELSE (h_points_game - a_points_game) END as margin_1
+        FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr` 
+        WHERE 1 = 1
+        AND season IN(2017)
+        AND ((tournament IS NULL) OR (tournament NOT IN ('NCAA')))
+        AND h_market in (SELECT distinct h_market FROM t3 WHERE season in (2017))
+        AND a_market in (SELECT distinct h_market FROM t3 WHERE season in (2017))
+)
+
+
+SELECT season
+  , h_market
+  , a_market
+  , margin_1
+  , case when neutral_site = FALSE THEN margin_1 ELSE margin_1 + 4 END as Margin
+  , neutral_site
+FROM t4
+ORDER BY neutral_site
+
+
+
+
+# 2017 season
+
+      SELECT season
+        , h_market
+        , a_market
+        , periods
+        , neutral_site
+        , h_points_game
+        , a_points_game                         
+        FROM `bigquery-public-data.ncaa_basketball.mbb_games_sr` 
+        WHERE 1 = 1
+        AND season IN(2017)
+        AND tournament IN ('NCAA')
+        and tournament_type IN ('First Four', 'West Regional', 'South Regional', 'Midwest Regional', 'East Regional', 'Final Four', 'National Championship')
+
